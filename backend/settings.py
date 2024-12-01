@@ -11,17 +11,15 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
 import pymysql
-pymysql.install_as_MySQLdb()
-
 import yaml
+from datetime import timedelta
+
 with open('config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -33,7 +31,6 @@ SECRET_KEY = config['django_secret_key']
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -82,10 +79,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+pymysql.install_as_MySQLdb()
 DATABASES = {
     'default': {
         'ENGINE': config['database']['engine'],
@@ -97,6 +94,28 @@ DATABASES = {
     }
 }
 
+# Redis
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# aliyun sms
+
+ALIYUN_SMS = {
+    'access_key_id': config['aliyun_sms']['access_key_id'],
+    'access_key_secret': config['aliyun_sms']['access_key_secret'],
+    'sign_name': config['aliyun_sms']['sign_name'],
+    'template_code': config['aliyun_sms']['template_code'],
+}
+
+ALIYUN_SMS_LIMIT_TIME = 5  # 短信有效期5分钟
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -116,7 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -127,7 +145,6 @@ TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -148,7 +165,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user.User'
 
 REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'utils.utils.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'utils.api_utils.custom_exception_handler',
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -157,8 +174,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),

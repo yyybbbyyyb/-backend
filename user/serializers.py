@@ -1,8 +1,19 @@
-from lib2to3.fixes.fix_input import context
-
 from rest_framework import serializers
 from .models import User
 from django.utils import timezone
+import re
+from rest_framework.exceptions import ValidationError
+from django_redis import get_redis_connection
+
+
+def phone_validator(value):
+    """
+    简单的自定义手机号验证器
+    """
+
+    if not re.match(r"^(1[3|456789])\d{9}$", value):
+        raise ValidationError('手机号格式错误')
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -48,13 +59,44 @@ class UserSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    phone = serializers.CharField(label='手机号', validators=[phone_validator, ])
+    code = serializers.CharField(label='短信验证码')
 
     class Meta:
         model = User
-        fields = ['username', 'password']
+        fields = ['username', 'password', 'phone', 'code']
 
     def create(self, validated_data):
+        validated_data.pop('code')
         return User.objects.create_user(**validated_data)
+
+    def validate_phone(self, value):
+        if User.objects.filter(phone=value).exists():
+            raise ValidationError('该手机号已被注册')
+
+    def validate_code(self, value):
+        if len(value) != 4:
+            raise ValidationError('验证码格式错误')
+        if not value.isdecimal():
+            raise ValidationError('验证码格式错误')
+
+        phone = self.initial_data['phone']
+        conn = get_redis_connection()
+        code = conn.get(phone)
+
+        if not code:
+            raise ValidationError('验证码已过期')
+        if value != code.decode('utf-8'):
+            raise ValidationError('验证码错误')
+
+        return value
+
+
+class MessageSerializer(serializers.Serializer):
+    """
+    用于给手机发送短信时验证手机号是否正确的序列化类
+    """
+
+    phone = serializers.CharField(label='phone', validators=[phone_validator, ])
