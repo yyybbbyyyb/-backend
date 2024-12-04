@@ -18,14 +18,21 @@ class CustomJSONRenderer(JSONRenderer):
 
         # 如果状态码是 2xx，则返回成功响应
         if 200 <= response.status_code < 300:
-            if 'status' not in data:
+            if data is None:
                 response_data = {
                     "status": "success",
                     "message": "操作成功",
-                    "data": data
+                    "data": None
                 }
             else:
-                response_data = data
+                if 'status' not in data:
+                    response_data = {
+                        "status": "success",
+                        "message": "操作成功",
+                        "data": data
+                    }
+                else:
+                    response_data = data
         else:
             # 对于非 2xx 的响应，保留原始数据（错误响应已经在异常处理中格式化）
             response_data = data

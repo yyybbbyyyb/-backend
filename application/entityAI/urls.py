@@ -9,5 +9,5 @@ router.register(r'entity-ai-type', views.EntityAITypeViewSet, basename='实体AI
 router.register(r'entity-ai-tag', views.EntityAITagViewSet, basename='实体AI标签')
 
 urlpatterns = [
-    path('like/', views.LikeView.as_view(), name='like'),  # 点赞
+    path('like/<int:entity_id>/', views.LikeView.as_view(), name='点赞'),
 ] + router.urls

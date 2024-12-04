@@ -18,9 +18,7 @@ class Comment(models.Model):
         (1, "长评"),
     )
     type = models.IntegerField(choices=ChoicesF, default=0, verbose_name='评论类型')
-
-
-
+    is_special = models.BooleanField(default=False, verbose_name='是否为精品评论')
 
     # 评分细则
     score1 = models.FloatField(default=0, verbose_name='评分细则1-数理能力')
@@ -29,7 +27,7 @@ class Comment(models.Model):
     score4 = models.FloatField(default=0, verbose_name='评分细则4-文本能力')
 
     class Meta:
-        verbose_name = '帖子'
+        verbose_name = '评论'
         verbose_name_plural = verbose_name
 
     def __str__(self):

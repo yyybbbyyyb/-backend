@@ -1,7 +1,7 @@
-from rest_framework.decorators import api_view
+from django.db.models import Count
+from django.db.models.functions import Substr
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, filters
-from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
 from application.entityAI.models import EntityAI, EntityAIType, EntityAITag
@@ -15,7 +15,7 @@ from utils.api_utils import success_response, fail_response
 class LikeView(APIView):
     def post(self, request, *args, **kwargs):
         user = request.user
-        entity_id = request.data.get('entity_id')
+        entity_id = kwargs.get('entity_id')
         try:
             entity = EntityAI.objects.get(id=entity_id)
         except EntityAI.DoesNotExist:
@@ -29,7 +29,7 @@ class LikeView(APIView):
 
     def delete(self, request, *args, **kwargs):
         user = request.user
-        entity_id = request.query_params.get('entity_id')
+        entity_id = kwargs.get('entity_id')
         try:
             entity = EntityAI.objects.get(id=entity_id)
         except EntityAI.DoesNotExist:
@@ -46,18 +46,37 @@ class EntityAITypeViewSet(viewsets.ModelViewSet):
     queryset = EntityAIType.objects.all()
     serializer_class = EntityAITypeSerializer
 
+
 class EntityAITagViewSet(viewsets.ModelViewSet):
     queryset = EntityAITag.objects.all()
     serializer_class = EntityAITagSerializer
 
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = []
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        entityAI_id = self.request.query_params.get('entityAI')
+
+        # 检查 entityAI_id 是否为有效的整数值
+        if entityAI_id and entityAI_id.isdigit():
+            entityAI_id = int(entityAI_id)
+            # 筛选与指定 entityAI 关联的 Tags
+            queryset = queryset.filter(entityAI__id=entityAI_id)
+
+        return queryset
 
 class EntityAIViewSet(viewsets.ModelViewSet):
-    queryset = EntityAI.objects.all()
+    queryset = EntityAI.objects.all().annotate(
+        first_letter=Substr('name', 1, 1)
+    ).annotate(
+        like_count=Count('like_entityAI')
+    )
     serializer_class = EntityAISerializer
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['type']
-    ordering_fields = ['average_score']
+    ordering_fields = ['average_score', 'like_count', 'first_letter']
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
