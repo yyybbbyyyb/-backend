@@ -20,7 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),  # 管理后台
-    path('api/', include('user.urls')),  # 将所有用户相关的API放到/api/user/下
+    path('api/', include('application.user.urls')),  # 将所有用户相关的API放到/api/user/下
+    path('api/', include('application.entityAI.urls')),  # 将所有实体AI相关的API放到/api/entityAI/下
 ]
 
 if settings.DEBUG:

@@ -30,6 +30,12 @@ openai:
     api_key: ""
     base_url: "https://aihubmix.com/v1"
 
+aliyun_sms:
+    access_key_id: ''
+    access_key_secret: ''
+    sign_name: '数据库大作业'
+    template_code: 'SMS_475910001'
+
 django_secret_key: ''
 ```
 

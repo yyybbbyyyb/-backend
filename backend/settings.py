@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
 
-    'user'
+    'application.user',
+    'application.entityAI',
+    'application.comment',
 ]
 
 MIDDLEWARE = [
@@ -166,6 +168,10 @@ AUTH_USER_MODEL = 'user.User'
 
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'utils.api_utils.custom_exception_handler',
+
+    'DEFAULT_RENDERER_CLASSES': [
+        'utils.api_utils.CustomJSONRenderer',
+    ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',

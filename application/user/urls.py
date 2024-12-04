@@ -1,8 +1,8 @@
 from django.urls import path
-from user import views
+from application.user import views
 
 urlpatterns = [
-    path('phone-code/', views.get_phone_code , name='send_phone_code'),  # 获得手机验证码
+    path('phone-code/', views.get_phone_code, name='send_phone_code'),  # 获得手机验证码
     path('login/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'), # 用户登录
     path('login-with-code/', views.login_with_code, name='token_obtain_pair'),  # 用户登录
     path('token/refresh/', views.CustomTokenRefreshView.as_view(), name='token_refresh'),  # 刷新Token

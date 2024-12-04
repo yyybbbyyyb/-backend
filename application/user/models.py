@@ -36,3 +36,21 @@ class User(AbstractUser):
 
         super(User, self).save(*args, **kwargs)
 
+
+class Like(models.Model):
+    """
+    点赞模型
+    """
+
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='like_user')
+    entityAI = models.ForeignKey('entityAI.EntityAI', on_delete=models.CASCADE, related_name='like_entityAI')
+
+    created_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        verbose_name = '点赞'
+        verbose_name_plural = verbose_name
+        unique_together = ('user', 'entityAI')
+
+    def __str__(self):
+        return self.user.username + '点赞了' + self.entityAI.name
