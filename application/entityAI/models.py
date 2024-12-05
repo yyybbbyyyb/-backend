@@ -9,6 +9,7 @@ class EntityAI(models.Model):
     # 基础信息
     name = models.CharField(max_length=100)
     logo = models.ImageField(upload_to='entityAI/', default='entityAI/default.png', verbose_name='实体AI图片')
+    cover = models.ImageField(upload_to='entityAI/', default='entityAI/default.png', verbose_name='实体AI封面')
     url = models.URLField(max_length=200, verbose_name='实体AI链接')
     description = models.TextField(max_length=200, verbose_name='实体AI描述', blank=True, default='这个实体AI很懒，什么都没有留下……')
 

@@ -29,7 +29,7 @@ def get_phone_code(request):
 
     result = send_sms(phone, {"code": code})
     if result.get("Code") != "OK":
-        return fail_response(message="获取手机验证码失败")
+        return fail_response(errors=result.get("Message"), message="获取手机验证码失败", status_code=status.HTTP_400_BAD_REQUEST)
 
     conn = get_redis_connection()
     conn.set(phone, code, ex=60 * settings.ALIYUN_SMS_LIMIT_TIME)
@@ -80,7 +80,7 @@ def login_with_code(request):
     if not saved_code:
         return fail_response(message="验证码已过期", status_code=status.HTTP_400_BAD_REQUEST)
 
-    if int(saved_code.decode()) != code:
+    if int(saved_code.decode()) != int(code):
         print(saved_code, code)
         return fail_response(message="验证码错误", status_code=status.HTTP_400_BAD_REQUEST)
 

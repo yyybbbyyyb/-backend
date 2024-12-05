@@ -75,6 +75,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         if User.objects.filter(phone=value).exists():
             raise ValidationError('该手机号已被注册')
+        return value
 
     def validate_code(self, value):
         if len(value) != 4:
