@@ -35,6 +35,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -193,3 +194,26 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+
+
+# simpleui配置
+SIMPLEUI_DEFAULT_ICON = False
+
+SIMPLEUI_ICON = {
+    '实体AI': 'el-icon-s-data',
+    '点赞': 'el-icon-s-opportunity',
+}
+
+SIMPLEUI_CONFIG = {
+    'system_keep': True,
+    'dynamic': False,
+    'menu_display': ['用户', '实体AI', '评论'],
+}
+
+SIMPLEUI_INDEX = 'http://localhost:5173/'
+
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_ANALYSIS = False
+
+SIMPLEUI_LOGO = '/static/Ai.svg'

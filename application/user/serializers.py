@@ -36,6 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
         # 计算用户使用天数
         representation['used_days'] = (timezone.now() - instance.date_joined).days
 
+        representation['role'] = instance.is_staff and 'admin' or 'user'
+
         return representation
 
     def validate(self, data):
