@@ -10,7 +10,7 @@ from .serializers import CommentSerializer, NoticeSerializer
 from rest_framework.pagination import PageNumberPagination
 
 class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 10  # 默认每页数据量
+    page_size = 8  # 默认每页数据量
     page_size_query_param = 'page_size'  # 允许前端传递的参数名
     max_page_size = 100  # 限制每页的最大数据量
 
