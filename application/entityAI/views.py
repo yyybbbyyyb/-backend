@@ -1,3 +1,4 @@
+from rest_framework.decorators import api_view
 from django.db.models import Count
 from django.db.models.functions import Substr
 from rest_framework.views import APIView
@@ -13,8 +14,9 @@ from utils.api_utils import success_response, fail_response
 
 from rest_framework.pagination import PageNumberPagination
 
+
 class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 8 # 默认每页数据量
+    page_size = 8  # 默认每页数据量
     page_size_query_param = 'page_size'  # 允许前端传递的参数名
     max_page_size = 100  # 限制每页的最大数据量
 
@@ -79,6 +81,7 @@ class EntityAITagViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+
 class EntityAIViewSet(viewsets.ModelViewSet):
     queryset = EntityAI.objects.all().annotate(
         first_letter=Substr('name', 1, 1)
@@ -97,3 +100,59 @@ class EntityAIViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return success_response(message="删除成功")
 
+
+@api_view(['GET'])
+def entityAI_recommend(request):
+    """
+    推荐实体AI
+    """
+
+    high_score_entityAIs = (
+        EntityAI.objects.all()
+        .order_by('-average_score')
+        .select_related('type')
+    )
+
+    high_score_recommend = []
+    seen_types = set()
+
+    for entityAI in high_score_entityAIs:
+        if len(high_score_recommend) >= 3:
+            break
+        if entityAI.type not in seen_types:
+            high_score_recommend.append({
+                'title': f'{entityAI.type.name}高评分模型',
+                'entityAI': entityAI
+            })
+            seen_types.add(entityAI.type)
+
+    high_like_entityAIs = (
+        EntityAI.objects.annotate(like_count=Count('like_entityAI'))
+        .order_by('-like_count')
+        .select_related('type')
+    )
+
+    high_like_recommend = []
+    seen_types = set()
+
+    for entityAI in high_like_entityAIs:
+        if len(high_like_recommend) >= 3:
+            break
+        if entityAI.type not in seen_types:
+            high_like_recommend.append({
+                'title': f'{entityAI.type.name}高点赞模型',
+                'entityAI': entityAI
+            })
+            seen_types.add(entityAI.type)
+
+    recommendations = high_score_recommend + high_like_recommend
+
+    serialized_recommendations = [
+        {
+            "title": rec["title"],
+            "entity": EntityAISerializer(rec["entityAI"]).data
+        }
+        for rec in recommendations
+    ]
+
+    return success_response(data=serialized_recommendations)
