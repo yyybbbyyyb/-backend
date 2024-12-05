@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Comment, Notice
 from application.entityAI.models import EntityAI
+from application.user.models import User
 
 
 class CommentSerializer(serializers.ModelSerializer):

@@ -7,14 +7,27 @@ from rest_framework.exceptions import PermissionDenied
 from .models import Comment, Notice
 from .serializers import CommentSerializer, NoticeSerializer
 
-from utils.api_utils import fail_response
+from rest_framework.pagination import PageNumberPagination
+
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 10  # 默认每页数据量
+    page_size_query_param = 'page_size'  # 允许前端传递的参数名
+    max_page_size = 100  # 限制每页的最大数据量
+
+    def paginate_queryset(self, queryset, request, view=None):
+        # 如果没有传入 `page` 参数，返回全部数据
+        if 'page' not in request.query_params or request.query_params['page'] == '':
+            return None  # 禁用分页
+        return super().paginate_queryset(queryset, request, view)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-created_time')  # 按时间倒序排列
     serializer_class = CommentSerializer
 
+    pagination_class = CustomPageNumberPagination  # 自定义分页器
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['entityAI', 'is_special', 'type']  # 支持过滤
+    filterset_fields = ['entityAI', 'is_special', 'type', 'author']
 
     def perform_create(self, serializer):
         """
@@ -62,6 +75,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 class NoticeViewSet(viewsets.ModelViewSet):
     queryset = Notice.objects.all().order_by('-created_time')  # 按时间倒序排列
     serializer_class = NoticeSerializer
+
+    pagination_class = CustomPageNumberPagination  # 自定义分页器
 
     def perform_create(self, serializer):
         """

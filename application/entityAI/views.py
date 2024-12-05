@@ -11,6 +11,19 @@ from .serializers import EntityAISerializer, EntityAITypeSerializer, EntityAITag
 
 from utils.api_utils import success_response, fail_response
 
+from rest_framework.pagination import PageNumberPagination
+
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 10  # 默认每页数据量
+    page_size_query_param = 'page_size'  # 允许前端传递的参数名
+    max_page_size = 100  # 限制每页的最大数据量
+
+    def paginate_queryset(self, queryset, request, view=None):
+        # 如果没有传入 `page` 参数，返回全部数据
+        if 'page' not in request.query_params or request.query_params['page'] == '':
+            return None  # 禁用分页
+        return super().paginate_queryset(queryset, request, view)
+
 
 class LikeView(APIView):
     def post(self, request, *args, **kwargs):
@@ -73,6 +86,7 @@ class EntityAIViewSet(viewsets.ModelViewSet):
         like_count=Count('like_entityAI')
     )
     serializer_class = EntityAISerializer
+    pagination_class = CustomPageNumberPagination
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['type']
