@@ -87,7 +87,15 @@ class EntityAIViewSet(viewsets.ModelViewSet):
         first_letter=Substr('name', 1, 1)
     ).annotate(
         like_count=Count('like_entityAI')
+    ).annotate(
+        average_score=(
+                              Sum('total_score1') +
+                              Sum('total_score2') +
+                              Sum('total_score3') +
+                              Sum('total_score4')
+                      ) / 4
     )
+
     serializer_class = EntityAISerializer
     pagination_class = CustomPageNumberPagination
 
@@ -167,35 +175,65 @@ def entityAI_recommend(request):
 
     return success_response(data=serialized_recommendations)
 
+
 @api_view(['GET'])
 def entityAI_statistics(request):
     """
     获取 EntityAI 的统计数据
     """
-    # 1. 小维度评分对比（前 5）
-    score_comparison = EntityAI.objects.values('name').annotate(
-        score1=Avg('total_score1'),
-        score2=Avg('total_score2'),
-        score3=Avg('total_score3'),
-        score4=Avg('total_score4')
-    ).order_by('-average_score')[:5]
+    # 1. 总评分对比（前 10）
+    total_scores = EntityAI.objects.annotate(
+        total_score=(
+                            Sum('total_score1') +
+                            Sum('total_score2') +
+                            Sum('total_score3') +
+                            Sum('total_score4')
+                    ) / 4
+    ).values('name', 'total_score').order_by('-total_score')[:10]
 
-    # 2. 总评分对比（前 10）
-    total_scores = EntityAI.objects.values('name').annotate(total_score=Avg('average_score')).order_by('-total_score')[:10]
+    # 2. 点赞量对比（前 10）
+    like_counts = EntityAI.objects.annotate(like_count=Count('like_entityAI')).values('name', 'like_count').order_by(
+        '-like_count')[:10]
 
-    # 3. 点赞量对比（前 10）
-    like_counts = EntityAI.objects.annotate(like_count=Count('like_entityAI')).values('name', 'like_count').order_by('-like_count')[:10]
-
-    # 4. 各类型的数量、平均评分和点赞量
+    # 3. 各类型的数量、平均评分和点赞量
     type_statistics = EntityAIType.objects.annotate(
         entity_count=Count('entityai'),
-        avg_score=Avg('entityai__average_score'),
-        total_likes=Sum('entityai__like_entityAI__id')
-    ).values('name', 'entity_count', 'avg_score', 'total_likes')
+    ).values('name', 'entity_count').order_by('-entity_count')
+
+    # 4. 评分细则前五
+    score_details = EntityAI.objects.annotate(
+        average_score=(
+                              Sum('total_score1') +
+                              Sum('total_score2') +
+                              Sum('total_score3') +
+                              Sum('total_score4')
+                      ) / 4
+    ).values('name', 'total_score1', 'total_score2', 'total_score3', 'total_score4', 'average_score').order_by(
+        '-average_score')[:5]
+
+    # 5. 点赞细则前五
+    like_details = EntityAI.objects.annotate(
+        like_count=Count('like_entityAI')
+    ).values(
+        'name', 'total_score1', 'total_score2', 'total_score3', 'total_score4'
+    ).order_by('-like_count')[:5]
+
+    # 6. 每个维度的前三名
+    top_score1 = EntityAI.objects.values('name', 'total_score1').order_by('-total_score1')[:3]
+    top_score2 = EntityAI.objects.values('name', 'total_score2').order_by('-total_score2')[:3]
+    top_score3 = EntityAI.objects.values('name', 'total_score3').order_by('-total_score3')[:3]
+    top_score4 = EntityAI.objects.values('name', 'total_score4').order_by('-total_score4')[:3]
 
     return success_response(data={
-        "score_comparison": list(score_comparison),
         "total_scores": list(total_scores),
         "like_counts": list(like_counts),
         "type_statistics": list(type_statistics),
+        "score_details": list(score_details),
+        "like_details": list(like_details),
+        "top_scores": {
+            "math_ability": list(top_score1),
+            "language_ability": list(top_score2),
+            "image_ability": list(top_score3),
+            "text_ability": list(top_score4),
+        }
     })

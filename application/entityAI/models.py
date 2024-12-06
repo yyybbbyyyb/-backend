@@ -16,9 +16,6 @@ class EntityAI(models.Model):
     # AI类型
     type = models.ForeignKey('EntityAIType', on_delete=models.CASCADE, verbose_name='实体AI类型')
 
-
-    average_score = models.FloatField(verbose_name='总评分', default=0)
-
     # 评分细则
     total_score1 = models.FloatField(verbose_name='评分细则1-数理能力', default=0)
     total_score2 = models.FloatField(verbose_name='评分细则2-语言能力', default=0)

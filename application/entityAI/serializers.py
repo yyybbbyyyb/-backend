@@ -37,6 +37,8 @@ class EntityAISerializer(serializers.ModelSerializer):
 
     is_liked = serializers.SerializerMethodField()
 
+    average_score = serializers.FloatField(read_only=True)
+
     def get_type(self, obj):
         return {"id": obj.type.id, "name": obj.type.name}
 
