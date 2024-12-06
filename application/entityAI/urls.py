@@ -11,4 +11,5 @@ router.register(r'entity-ai-tag', views.EntityAITagViewSet, basename='实体AI�
 urlpatterns = [
     path('like/<int:entity_id>/', views.LikeView.as_view(), name='点赞'),
     path('recommend/', views.entityAI_recommend, name='推荐实体AI'),
+    path('statistics/', views.entityAI_statistics, name='实体AI统计'),
 ] + router.urls

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import EntityAI, EntityAIType, EntityAITag
+from application.user.models import Like
 
 
 class EntityAITypeSerializer(serializers.ModelSerializer):
@@ -34,12 +35,20 @@ class EntityAISerializer(serializers.ModelSerializer):
 
     like_count = serializers.IntegerField(read_only=True)
 
+    is_liked = serializers.SerializerMethodField()
+
     def get_type(self, obj):
         return {"id": obj.type.id, "name": obj.type.name}
 
     def get_entityAI_tags(self, obj):
         return [{"id": tag.id, "name": tag.name} for tag in obj.entityAI_tags.all()]
 
+    def get_is_liked(self, obj):
+        """判断当前用户是否已点赞"""
+        user = self.context['request'].user
+        return Like.objects.filter(user=user, entityAI=obj).exists()
+
     class Meta:
         model = EntityAI
         fields = '__all__'
+        extra_fields = ['is_liked']  # 声明动态字段

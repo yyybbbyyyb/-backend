@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view
-from django.db.models import Count
+from django.db.models import Count, Avg, Sum
 from django.db.models.functions import Substr
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, filters
@@ -100,6 +100,16 @@ class EntityAIViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return success_response(message="删除成功")
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # 检查是否有 `liked_by_user` 参数
+        liked_by_user = self.request.query_params.get('liked_by_user')
+        if liked_by_user == 'true':
+            queryset = queryset.filter(like_entityAI__user=self.request.user)
+
+        return queryset
+
 
 @api_view(['GET'])
 def entityAI_recommend(request):
@@ -150,9 +160,42 @@ def entityAI_recommend(request):
     serialized_recommendations = [
         {
             "title": rec["title"],
-            "entity": EntityAISerializer(rec["entityAI"]).data
+            "entity": EntityAISerializer(rec["entityAI"], context={"request": request}).data
         }
         for rec in recommendations
     ]
 
     return success_response(data=serialized_recommendations)
+
+@api_view(['GET'])
+def entityAI_statistics(request):
+    """
+    获取 EntityAI 的统计数据
+    """
+    # 1. 小维度评分对比（前 5）
+    score_comparison = EntityAI.objects.values('name').annotate(
+        score1=Avg('total_score1'),
+        score2=Avg('total_score2'),
+        score3=Avg('total_score3'),
+        score4=Avg('total_score4')
+    ).order_by('-average_score')[:5]
+
+    # 2. 总评分对比（前 10）
+    total_scores = EntityAI.objects.values('name').annotate(total_score=Avg('average_score')).order_by('-total_score')[:10]
+
+    # 3. 点赞量对比（前 10）
+    like_counts = EntityAI.objects.annotate(like_count=Count('like_entityAI')).values('name', 'like_count').order_by('-like_count')[:10]
+
+    # 4. 各类型的数量、平均评分和点赞量
+    type_statistics = EntityAIType.objects.annotate(
+        entity_count=Count('entityai'),
+        avg_score=Avg('entityai__average_score'),
+        total_likes=Sum('entityai__like_entityAI__id')
+    ).values('name', 'entity_count', 'avg_score', 'total_likes')
+
+    return success_response(data={
+        "score_comparison": list(score_comparison),
+        "total_scores": list(total_scores),
+        "like_counts": list(like_counts),
+        "type_statistics": list(type_statistics),
+    })
