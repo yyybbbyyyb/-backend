@@ -126,9 +126,14 @@ def entityAI_recommend(request):
     """
 
     high_score_entityAIs = (
-        EntityAI.objects.all()
-        .order_by('-average_score')
-        .select_related('type')
+        EntityAI.objects.all().annotate(
+            average_score=(
+                                  Sum('total_score1') +
+                                  Sum('total_score2') +
+                                  Sum('total_score3') +
+                                  Sum('total_score4')
+                          ) / 4
+        ).order_by('-average_score').select_related('type')
     )
 
     high_score_recommend = []
