@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view
 from django.db.models import Count, Avg, Sum, FloatField
+from django.db.models import OuterRef, Subquery
 from django.db.models.functions import Substr, Round, Cast
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, filters
@@ -83,19 +84,22 @@ class EntityAITagViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-
 class EntityAIViewSet(viewsets.ModelViewSet):
-    queryset = EntityAI.objects.all().annotate(
-        first_letter=Substr('name', 1, 1)
-    ).annotate(
-        like_count=Count('like_entityAI')
-    ).annotate(
-        average_score=Round((
-                                    Sum('total_score1', output_field=FloatField()) +
-                                    Sum('total_score2', output_field=FloatField()) +
-                                    Sum('total_score3', output_field=FloatField()) +
-                                    Sum('total_score4', output_field=FloatField())
-                            ) / 4, 2)  # 保留两位小数
+    queryset = EntityAI.objects.annotate(
+        like_count=Count('like_entityAI'),
+        average_score=Round(
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total_avg=(
+                                      Sum('total_score1', output_field=FloatField()) +
+                                      Sum('total_score2', output_field=FloatField()) +
+                                      Sum('total_score3', output_field=FloatField()) +
+                                      Sum('total_score4', output_field=FloatField())
+                              ) / 4
+                ).values('total_avg')[:1],
+                output_field=FloatField()
+            ), 2
+        )
     )
 
     serializer_class = EntityAISerializer
