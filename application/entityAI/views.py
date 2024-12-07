@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view
-from django.db.models import Count, Avg, Sum
-from django.db.models.functions import Substr
+from django.db.models import Count, Avg, Sum, FloatField
+from django.db.models.functions import Substr, Round, Cast
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
@@ -88,12 +88,12 @@ class EntityAIViewSet(viewsets.ModelViewSet):
     ).annotate(
         like_count=Count('like_entityAI')
     ).annotate(
-        average_score=(
-                              Sum('total_score1') +
-                              Sum('total_score2') +
-                              Sum('total_score3') +
-                              Sum('total_score4')
-                      ) / 4
+        average_score=Round((
+                                    Sum('total_score1', output_field=FloatField()) +
+                                    Sum('total_score2', output_field=FloatField()) +
+                                    Sum('total_score3', output_field=FloatField()) +
+                                    Sum('total_score4', output_field=FloatField())
+                            ) / 4, 2)  # 保留两位小数
     )
 
     serializer_class = EntityAISerializer
@@ -127,12 +127,12 @@ def entityAI_recommend(request):
 
     high_score_entityAIs = (
         EntityAI.objects.all().annotate(
-            average_score=(
-                                  Sum('total_score1') +
-                                  Sum('total_score2') +
-                                  Sum('total_score3') +
-                                  Sum('total_score4')
-                          ) / 4
+            average_score=Round((
+                                        Sum('total_score1', output_field=FloatField()) +
+                                        Sum('total_score2', output_field=FloatField()) +
+                                        Sum('total_score3', output_field=FloatField()) +
+                                        Sum('total_score4', output_field=FloatField())
+                                ) / 4, 2)  # 保留两位小数
         ).order_by('-average_score').select_related('type')
     )
 
@@ -140,7 +140,7 @@ def entityAI_recommend(request):
     seen_types = set()
 
     for entityAI in high_score_entityAIs:
-        if len(high_score_recommend) >= 3:
+        if len(high_score_recommend) >= 2:
             break
         if entityAI.type not in seen_types:
             high_score_recommend.append({
@@ -159,7 +159,7 @@ def entityAI_recommend(request):
     seen_types = set()
 
     for entityAI in high_like_entityAIs:
-        if len(high_like_recommend) >= 3:
+        if len(high_like_recommend) >= 2:
             break
         if entityAI.type not in seen_types:
             high_like_recommend.append({
@@ -188,12 +188,12 @@ def entityAI_statistics(request):
     """
     # 1. 总评分对比（前 10）
     total_scores = EntityAI.objects.annotate(
-        total_score=(
-                            Sum('total_score1') +
-                            Sum('total_score2') +
-                            Sum('total_score3') +
-                            Sum('total_score4')
-                    ) / 4
+        total_score=Round((
+                                    Sum('total_score1', output_field=FloatField()) +
+                                    Sum('total_score2', output_field=FloatField()) +
+                                    Sum('total_score3', output_field=FloatField()) +
+                                    Sum('total_score4', output_field=FloatField())
+                            ) / 4, 2)  # 保留两位小数
     ).values('name', 'total_score').order_by('-total_score')[:10]
 
     # 2. 点赞量对比（前 10）
@@ -207,20 +207,39 @@ def entityAI_statistics(request):
 
     # 4. 评分细则前五
     score_details = EntityAI.objects.annotate(
-        average_score=(
-                              Sum('total_score1') +
-                              Sum('total_score2') +
-                              Sum('total_score3') +
-                              Sum('total_score4')
-                      ) / 4
-    ).values('name', 'total_score1', 'total_score2', 'total_score3', 'total_score4', 'average_score').order_by(
-        '-average_score')[:5]
+        total_score1_rounded=Round(Cast(Sum('total_score1', output_field=FloatField()), FloatField()), 2),
+        total_score2_rounded=Round(Cast(Sum('total_score2', output_field=FloatField()), FloatField()), 2),
+        total_score3_rounded=Round(Cast(Sum('total_score3', output_field=FloatField()), FloatField()), 2),
+        total_score4_rounded=Round(Cast(Sum('total_score4', output_field=FloatField()), FloatField()), 2),
+        average_score=Round((
+                                    Sum('total_score1', output_field=FloatField()) +
+                                    Sum('total_score2', output_field=FloatField()) +
+                                    Sum('total_score3', output_field=FloatField()) +
+                                    Sum('total_score4', output_field=FloatField())
+                            ) / 4, 2)
+    ).values(
+        'name',
+        'total_score1_rounded',
+        'total_score2_rounded',
+        'total_score3_rounded',
+        'total_score4_rounded',
+        'average_score'
+    ).order_by('-average_score')[:5]
 
     # 5. 点赞细则前五
     like_details = EntityAI.objects.annotate(
+        total_score1_rounded=Round(Cast(Sum('total_score1', output_field=FloatField()), FloatField()), 2),
+        total_score2_rounded=Round(Cast(Sum('total_score2', output_field=FloatField()), FloatField()), 2),
+        total_score3_rounded=Round(Cast(Sum('total_score3', output_field=FloatField()), FloatField()), 2),
+        total_score4_rounded=Round(Cast(Sum('total_score4', output_field=FloatField()), FloatField()), 2),
         like_count=Count('like_entityAI')
     ).values(
-        'name', 'total_score1', 'total_score2', 'total_score3', 'total_score4'
+        'name',
+        'total_score1_rounded',
+        'total_score2_rounded',
+        'total_score3_rounded',
+        'total_score4_rounded',
+        'like_count'
     ).order_by('-like_count')[:5]
 
     # 6. 每个维度的前三名

@@ -20,6 +20,7 @@ class Comment(models.Model):
     type = models.IntegerField(choices=ChoicesF, default=0, verbose_name='评论类型')
     is_special = models.BooleanField(default=False, verbose_name='是否为精品评论')
 
+
     # 评分细则
     score1 = models.FloatField(default=0, verbose_name='评分细则1-数理能力')
     score2 = models.FloatField(default=0, verbose_name='评分细则2-语言能力')

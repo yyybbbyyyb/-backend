@@ -12,6 +12,10 @@ class CommentSerializer(serializers.ModelSerializer):
     entityAI = serializers.SerializerMethodField()  # 替代嵌套序列化，返回所需字段
     author = serializers.SerializerMethodField()  # 替代嵌套序列化，返回所需字段
 
+    created_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+
+    average_score = serializers.FloatField(read_only=True)
+
     class Meta:
         model = Comment
         fields = '__all__'

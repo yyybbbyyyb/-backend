@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from django.db import transaction
-from django.db.models import Avg, F
+from django.db.models import Avg, F, FloatField, Sum
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models.functions import Round
 from rest_framework.exceptions import PermissionDenied
 
 from .models import Comment, Notice
@@ -22,7 +23,14 @@ class CustomPageNumberPagination(PageNumberPagination):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all().order_by('-created_time')  # 按时间倒序排列
+    queryset = Comment.objects.all().order_by('-created_time').annotate(
+        average_score=Round((
+                                    Sum('score1', output_field=FloatField()) +
+                                    Sum('score2', output_field=FloatField()) +
+                                    Sum('score3', output_field=FloatField()) +
+                                    Sum('score4', output_field=FloatField())
+                            ) / 4, 2)  # 保留两位小数
+    )
     serializer_class = CommentSerializer
 
     pagination_class = CustomPageNumberPagination  # 自定义分页器
