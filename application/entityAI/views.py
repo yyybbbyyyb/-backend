@@ -84,6 +84,7 @@ class EntityAITagViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+
 class EntityAIViewSet(viewsets.ModelViewSet):
     queryset = EntityAI.objects.annotate(
         like_count=Count('like_entityAI'),
@@ -195,11 +196,11 @@ def entityAI_statistics(request):
     # 1. 总评分对比（前 10）
     total_scores = EntityAI.objects.annotate(
         total_score=Round((
-                                    Sum('total_score1', output_field=FloatField()) +
-                                    Sum('total_score2', output_field=FloatField()) +
-                                    Sum('total_score3', output_field=FloatField()) +
-                                    Sum('total_score4', output_field=FloatField())
-                            ) / 4, 2)  # 保留两位小数
+                                  Sum('total_score1', output_field=FloatField()) +
+                                  Sum('total_score2', output_field=FloatField()) +
+                                  Sum('total_score3', output_field=FloatField()) +
+                                  Sum('total_score4', output_field=FloatField())
+                          ) / 4, 2)  # 保留两位小数
     ).values('name', 'total_score').order_by('-total_score')[:10]
 
     # 2. 点赞量对比（前 10）
@@ -234,11 +235,44 @@ def entityAI_statistics(request):
 
     # 5. 点赞细则前五
     like_details = EntityAI.objects.annotate(
-        total_score1_rounded=Round(Cast(Sum('total_score1', output_field=FloatField()), FloatField()), 2),
-        total_score2_rounded=Round(Cast(Sum('total_score2', output_field=FloatField()), FloatField()), 2),
-        total_score3_rounded=Round(Cast(Sum('total_score3', output_field=FloatField()), FloatField()), 2),
-        total_score4_rounded=Round(Cast(Sum('total_score4', output_field=FloatField()), FloatField()), 2),
-        like_count=Count('like_entityAI')
+        total_score1_rounded=Round(
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total=Sum('total_score1', output_field=FloatField())
+                ).values('total')[:1],
+                output_field=FloatField()
+            ), 2
+        ),
+        total_score2_rounded=Round(
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total=Sum('total_score2', output_field=FloatField())
+                ).values('total')[:1],
+                output_field=FloatField()
+            ), 2
+        ),
+        total_score3_rounded=Round(
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total=Sum('total_score3', output_field=FloatField())
+                ).values('total')[:1],
+                output_field=FloatField()
+            ), 2
+        ),
+        total_score4_rounded=Round(
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total=Sum('total_score4', output_field=FloatField())
+                ).values('total')[:1],
+                output_field=FloatField()
+            ), 2
+        ),
+        like_count=Subquery(
+            EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                count=Count('like_entityAI')
+            ).values('count')[:1],
+            output_field=FloatField()
+        )
     ).values(
         'name',
         'total_score1_rounded',
