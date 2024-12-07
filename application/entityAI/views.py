@@ -4,6 +4,8 @@ from django.db.models.functions import Substr, Round, Cast
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
+from pypinyin import lazy_pinyin, Style
+from rest_framework.filters import OrderingFilter
 
 from application.entityAI.models import EntityAI, EntityAIType, EntityAITag
 from application.user.models import Like
@@ -101,7 +103,7 @@ class EntityAIViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['type']
-    ordering_fields = ['average_score', 'like_count', 'first_letter']
+    ordering_fields = ['average_score', 'like_count', 'pinyin_name']
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

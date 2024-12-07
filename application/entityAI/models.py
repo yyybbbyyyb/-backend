@@ -1,5 +1,5 @@
 from django.db import models
-
+from pypinyin import lazy_pinyin
 
 class EntityAI(models.Model):
     """
@@ -12,6 +12,8 @@ class EntityAI(models.Model):
     cover = models.ImageField(upload_to='entityAI/', default='entityAI/default.png', verbose_name='实体AI封面')
     url = models.URLField(max_length=200, verbose_name='实体AI链接')
     description = models.TextField(max_length=200, verbose_name='实体AI描述', blank=True, default='这个实体AI很懒，什么都没有留下……')
+
+    pinyin_name = models.CharField(max_length=255, blank=True, null=True)  # 用于存储拼音名，提高查询效率
 
     # AI类型
     type = models.ForeignKey('EntityAIType', on_delete=models.CASCADE, verbose_name='实体AI类型')
@@ -29,6 +31,11 @@ class EntityAI(models.Model):
     class Meta:
         verbose_name = '实体AI'
         verbose_name_plural = verbose_name
+
+    def save(self, *args, **kwargs):
+        # 在保存时自动计算拼音
+        self.pinyin_name = ''.join(lazy_pinyin(self.name))
+        super().save(*args, **kwargs)
 
 
 
