@@ -163,7 +163,7 @@ def entityAI_recommend(request):
             break
         if entityAI.type not in seen_types:
             high_like_recommend.append({
-                'title': f'{entityAI.type.name}高点赞模型',
+                'title': f'{entityAI.type.name}高收藏模型',
                 'entityAI': entityAI
             })
             seen_types.add(entityAI.type)
