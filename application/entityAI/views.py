@@ -157,7 +157,22 @@ def entityAI_recommend(request):
             seen_types.add(entityAI.type)
 
     high_like_entityAIs = (
-        EntityAI.objects.annotate(like_count=Count('like_entityAI'))
+        EntityAI.objects.annotate(
+            like_count=Count('like_entityAI'),
+            average_score=Round(
+                Subquery(
+                    EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                        total_avg=(
+                                          Sum('total_score1', output_field=FloatField()) +
+                                          Sum('total_score2', output_field=FloatField()) +
+                                          Sum('total_score3', output_field=FloatField()) +
+                                          Sum('total_score4', output_field=FloatField())
+                                  ) / 4
+                    ).values('total_avg')[:1],
+                    output_field=FloatField()
+                ), 2
+            )
+        )
         .order_by('-like_count')
         .select_related('type')
     )

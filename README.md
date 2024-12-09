@@ -57,3 +57,22 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+### 将logo和cover图片导入后端文件夹
+```text
+medie/entityAI/
+```
+
+### 运行db.sql导入数据库即可
+```shell
+mysql -u root -p aijc < db.sql
+```
+
+### 创建三个管理员
+```shell
+python manage.py createsuperuser 
+```
+
+
+
+
+
