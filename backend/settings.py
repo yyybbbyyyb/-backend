@@ -11,9 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os.path
 import pymysql
 import yaml
 from datetime import timedelta
+from jieba.analyse import ChineseAnalyzer
 
 with open('config.yaml', 'r') as f:
     config = yaml.safe_load(f)
@@ -42,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'haystack',
 
     'corsheaders',
 
@@ -195,8 +199,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-
-
 # simpleui配置
 SIMPLEUI_DEFAULT_ICON = False
 
@@ -217,3 +219,13 @@ SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
 
 SIMPLEUI_LOGO = '/static/Ai.svg'
+
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        'PATH': os.path.join(BASE_DIR, 'whoosh_index'),  # 索引文件存放的路径
+        'EXTRA_ANALYZERS': {
+            'default': ChineseAnalyzer(),  # 使用中文分词器
+        },
+    },
+}

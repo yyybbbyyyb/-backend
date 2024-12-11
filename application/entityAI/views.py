@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Count, Avg, Sum, FloatField
 from django.db.models import OuterRef, Subquery
 from django.db.models.functions import Substr, Round, Cast
@@ -7,6 +7,13 @@ from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from pypinyin import lazy_pinyin, Style
 from rest_framework.filters import OrderingFilter
+from haystack.query import SearchQuerySet
+from rest_framework.permissions import AllowAny
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 from application.entityAI.models import EntityAI, EntityAIType, EntityAITag
 from application.user.models import Like
@@ -206,7 +213,7 @@ def entityAI_recommend(request):
 @api_view(['GET'])
 def entityAI_statistics(request):
     """
-    获取 EntityAI 的统计数据
+    获取 entityAI 的统计数据
     """
     # 1. 总评分对比（前 10）
     total_scores = EntityAI.objects.annotate(
@@ -316,3 +323,128 @@ def entityAI_statistics(request):
             "text_ability": list(top_score4),
         }
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def search(request):
+    query = request.GET.get('q', '')
+    if not query:
+        return fail_response(message="请输入搜索关键词", status_code=status.HTTP_400_BAD_REQUEST)
+
+    # 搜索结果
+    sqs = SearchQuerySet().filter(content=query)
+    ids = [result.object.id for result in sqs if result.object]  # 获取搜索结果中对应的实体 ID
+
+    # 查询数据库，计算评分和点赞量
+    queryset = EntityAI.objects.filter(id__in=ids).annotate(
+        like_count=Count('like_entityAI'),  # 点赞量
+        average_score=Round(  # 平均评分
+            Subquery(
+                EntityAI.objects.filter(id=OuterRef('id')).annotate(
+                    total_avg=(
+                                      Sum('total_score1', output_field=FloatField()) +
+                                      Sum('total_score2', output_field=FloatField()) +
+                                      Sum('total_score3', output_field=FloatField()) +
+                                      Sum('total_score4', output_field=FloatField())
+                              ) / 4
+                ).values('total_avg')[:1],
+                output_field=FloatField()
+            ), 2
+        )
+    )
+
+    # 通过 `type` 过滤
+    type_id = request.GET.get('type', None)
+    if type_id:
+        queryset = queryset.filter(type__id=type_id)
+
+    # 排序支持
+    ordering = request.GET.get('ordering', None)
+    if ordering in ['average_score', '-average_score', 'like_count', '-like_count', 'pinyin_name', '-pinyin_name']:
+        queryset = queryset.order_by(ordering)
+
+    # 使用分页器对结果进行分页
+    paginator = CustomPageNumberPagination()
+    page = paginator.paginate_queryset(queryset, request)
+
+    if page is not None:
+        serializer = EntityAISerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
+
+    # 如果没有分页，返回所有结果
+    serializer = EntityAISerializer(queryset, many=True, context={'request': request})
+    return success_response(data=serializer.data)
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from application.entityAI.models import EntityAI
+from application.user.models import Like
+from .serializers import EntityAISerializer
+
+
+@api_view(['GET'])
+def recommend_similar_entityAI(request):
+    """
+    基于当前 AI 信息和用户收藏推荐类似的 3 个 AI
+    """
+    entity_id = request.GET.get('entityAI')
+
+    try:
+        # 获取当前 AI
+        all_entities = EntityAI.objects.all()
+        current_entity = EntityAI.objects.get(id=entity_id)
+    except EntityAI.DoesNotExist:
+        return fail_response(message="AI 不存在", status_code=404)
+
+    # 获取用户收藏的 AI
+    user = request.user
+    if user.is_authenticated:
+        user_liked_entities = EntityAI.objects.filter(like_entityAI__user=user)
+    else:
+        user_liked_entities = EntityAI.objects.none()
+
+    # 文本特征：名称和描述
+    text_data = [f"{entity.name} {entity.description}" for entity in all_entities]
+
+    # 数值特征：评分、点赞量、用户是否收藏
+    scores = np.array([
+        [
+            entity.total_score1 + entity.total_score2 + entity.total_score3 + entity.total_score4,
+            entity.like_entityAI.count(),
+            1 if entity in user_liked_entities else 0  # 收藏特征
+        ] for entity in all_entities
+    ])
+
+    # 标准化数值特征
+    scaler = MinMaxScaler()
+    normalized_scores = scaler.fit_transform(scores)
+
+    # 文本特征向量化
+    vectorizer = TfidfVectorizer()
+    text_vectors = vectorizer.fit_transform(text_data)
+
+    # 合并文本向量和数值特征向量
+    combined_vectors = np.hstack([text_vectors.toarray(), normalized_scores])
+
+    # 获取当前实体的索引
+    current_index = list(all_entities).index(current_entity)
+
+    # 计算相似度
+    similarities = cosine_similarity([combined_vectors[current_index]], combined_vectors)[0]
+
+    # 排序并获取最相似的 3 个实体
+    similar_indices = similarities.argsort()[::-1][1:4]  # 排除当前实体
+
+    # 获取推荐的实体
+    # 将 numpy.int64 转换为标准的 int
+    recommended_entities = [all_entities[int(i)] for i in similar_indices]
+
+    # 序列化推荐结果
+    serializer = EntityAISerializer(recommended_entities, many=True, context={'request': request})
+    return success_response(data=serializer.data)
+

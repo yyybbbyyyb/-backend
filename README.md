@@ -72,6 +72,18 @@ mysql -u root -p aijc < db.sql
 python manage.py createsuperuser 
 ```
 
+### 创建搜索引擎
+```shell
+python manage.py rebuild_index
+```
++ 如果问`WARNING: This will irreparably remove EVERYTHING ...`，输入`yes`即可
++ 数据库新增之后需要重建索引
++ 当然可以考虑配置定时任务，每天重建一次索引
+
+### 运行项目
+```shell
+python manage.py runserver
+```
 
 
 

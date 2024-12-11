@@ -1,0 +1,6 @@
+{{ object.name }} {{ object.name }} {{ object.name }}
+{{ object.description }}
+{% for tag in object.entityAI_tags.all %}
+{{ tag.name }}
+{% endfor %}
+{{ object.type.name }}

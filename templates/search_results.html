@@ -1,0 +1,18 @@
+<h1>搜索结果</h1>
+<p>搜索词：{{ query }}</p>
+
+<ul>
+    {% for result in results %}
+        <li>
+            <a href="{{ result.object.get_absolute_url }}">{{ result.name }}</a>
+            <p>{{ result.description }}</p>
+            <p>标签:
+                {% for tag in result.object.entityAI_tags.all %}
+                    {{ tag.name }}
+                {% endfor %}
+            </p>
+        </li>
+    {% empty %}
+        <li>没有找到匹配的结果。</li>
+    {% endfor %}
+</ul>

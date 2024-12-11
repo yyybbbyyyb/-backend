@@ -39,7 +39,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        在创建评论时，更新 EntityAI 的评分。
+        在创建评论时，更新 entityAI 的评分。
         """
         with transaction.atomic():
             comment = serializer.save(author=self.request.user)  # 保存评论并设置作者
@@ -47,7 +47,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         """
-        在更新评论时，重新计算并更新 EntityAI 的评分。
+        在更新评论时，重新计算并更新 entityAI 的评分。
         """
         with transaction.atomic():
             comment = serializer.save()  # 更新评论
@@ -55,7 +55,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         """
-        在删除评论时，重新计算并更新 EntityAI 的评分。
+        在删除评论时，重新计算并更新 entityAI 的评分。
         """
         with transaction.atomic():
             entityAI = instance.entityAI  # 获取相关的实体AI
@@ -64,7 +64,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def update_entityAI_scores(self, entityAI):
         """
-        重新计算并更新 EntityAI 的评分。
+        重新计算并更新 entityAI 的评分。
         """
         scores = Comment.objects.filter(entityAI=entityAI).aggregate(
             avg_score1=Avg('score1'),
@@ -73,7 +73,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             avg_score4=Avg('score4')
         )
 
-        # 更新 EntityAI 的评分细则和平均分
+        # 更新 entityAI 的评分细则和平均分
         entityAI.total_score1 = scores['avg_score1'] or 0
         entityAI.total_score2 = scores['avg_score2'] or 0
         entityAI.total_score3 = scores['avg_score3'] or 0

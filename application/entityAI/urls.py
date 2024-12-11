@@ -12,4 +12,6 @@ urlpatterns = [
     path('like/<int:entity_id>/', views.LikeView.as_view(), name='点赞'),
     path('recommend/', views.entityAI_recommend, name='推荐实体AI'),
     path('statistics/', views.entityAI_statistics, name='实体AI统计'),
+    path('search/', views.search, name='实体AI搜索'),
+    path('recommend-similar/', views.recommend_similar_entityAI, name='推荐实体AI'),
 ] + router.urls
